@@ -1,7 +1,7 @@
 name: Generate
 
 permissions:
-  contents: read
+  contents: write
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   generate:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
@@ -75,3 +75,19 @@ jobs:
         with:
           name: bzip2-files
           path: bzip2-files.zip
+
+      - name: Set tag
+        id: set_tag
+        run: |
+          echo "RELEASE_TAG=$(date +'%Y-%m-%d-%H%M%S')" >> $GITHUB_ENV
+          ls
+        # if: ${{ github.event_name == 'workflow_dispatch' }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        # if: ${{ github.event_name == 'workflow_dispatch' }}
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: |
+            gzip-files.zip
+            bzip2-files.zip
