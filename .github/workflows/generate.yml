@@ -35,10 +35,21 @@ jobs:
           echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
           $GITHUB_WORKSPACE/bin/bzip2-0.9.0c --version
 
+      - name: Download and build zlib-ng (because it exposes compression level 0)
+        run: |
+          curl -L -o zlib-ng.tar.gz https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.2.4.tar.gz
+          tar -xzf zlib-ng.tar.gz
+          cd zlib-ng-2.2.4
+          ./configure
+          make
+          mkdir -p $GITHUB_WORKSPACE/bin
+          cp minigzip $GITHUB_WORKSPACE/bin/minigzip
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+          $GITHUB_WORKSPACE/bin/minigzip --help
+
       - name: Install gzip
         run: |
-            sudo apt-get install -y gzip bzip2
-            gzip --version
+            sudo apt-get install -y bzip2
             bzip2 --version
 
       - name: Compress files in data folder
@@ -46,13 +57,16 @@ jobs:
           mkdir -p compressed
           rm -f compressed/*
           for file in data/*; do
-            for level in 1 2 3 4 5 6 7 8 9; do
-              bzip2 -k -$level "$file" -c > "compressed/$(basename "$file").bzip2-$level.bz2"
-              bzip2-0.9.0c -k -$level "$file" -c > "compressed/$(basename "$file").bzip2-0.9.0-$level.bz2"
-              gzip -k -$level "$file" -c > "compressed/$(basename "$file").gzip-$level.gz"
-              gzip -k -$level -f "$file" -c > "compressed/$(basename "$file").gzip-filtered-$level.gz"
-              gzip -k -$level -h "$file" -c > "compressed/$(basename "$file").gzip-huffman-$level.gz"
-              gzip -k -$level -r "$file" -c > "compressed/$(basename "$file").gzip-rle-$level.gz"
+            for level in 0 1 2 3 4 5 6 7 8 9; do
+              if [ "$level" -ne 0 ]; then
+                bzip2 -k -$level "$file" -c > "compressed/$(basename "$file").bzip2-$level.bz2"
+                bzip2-0.9.0c -k -$level "$file" -c > "compressed/$(basename "$file").bzip2-0.9.0-$level.bz2"
+              fi
+              minigzip -k -c -$level "$file" > "compressed/$(basename "$file").gzip-$level.gz"
+              minigzip -k -c -$level -f "$file" > "compressed/$(basename "$file").gzip-filtered-$level.gz"
+              minigzip -k -c -$level -h "$file" > "compressed/$(basename "$file").gzip-huffman-$level.gz"
+              minigzip -k -c -$level -R "$file" > "compressed/$(basename "$file").gzip-rle-$level.gz"
+              minigzip -k -c -$level -F "$file" > "compressed/$(basename "$file").gzip-fixed-$level.gz"
             done
           done
 
