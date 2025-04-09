@@ -70,6 +70,10 @@ jobs:
             done
           done
 
+      - name: Copy handpicked files
+        run: |
+          cp handpicked/* compressed/
+
       - name: Create gzip artifact zip
         run: |
           zip -r gzip-files.zip compressed/*.gz
