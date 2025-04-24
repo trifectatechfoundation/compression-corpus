@@ -61,6 +61,7 @@ jobs:
               if [ "$level" -ne 0 ]; then
                 bzip2 -k -$level "$file" -c > "compressed/$(basename "$file").bzip2-$level.bz2"
                 bzip2-0.9.0c -k -$level "$file" -c > "compressed/$(basename "$file").bzip2-0.9.0-$level.bz2"
+                bzip2-0.9.0c -k -$level "$file" -c -s > "compressed/$(basename "$file").bzip2-0.9.0-$level-small.bz2"
               fi
               minigzip -k -c -$level "$file" > "compressed/$(basename "$file").gzip-$level.gz"
               minigzip -k -c -$level -f "$file" > "compressed/$(basename "$file").gzip-filtered-$level.gz"
