@@ -47,7 +47,12 @@ jobs:
           echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
           $GITHUB_WORKSPACE/bin/minigzip --help
 
-      - name: Install gzip
+      - name: Install zstd
+        run: |
+            sudo apt-get install -y zstd
+            zstd --version
+
+      - name: Install bzip2
         run: |
             sudo apt-get install -y bzip2
             bzip2 --version
@@ -69,6 +74,17 @@ jobs:
               minigzip -k -c -$level -R "$file" > "compressed/$(basename "$file").gzip-rle-$level.gz"
               minigzip -k -c -$level -F "$file" > "compressed/$(basename "$file").gzip-fixed-$level.gz"
             done
+
+            # Zstandard compression levels (1 to 19)
+            for level in $(seq 1 19); do
+              zstd -$level -c "$file" > "compressed/$(basename "$file").zstd-$level.zst"
+              zstd -$level --long=27 -c "$file" > "compressed/$(basename "$file").zstd-long27-$level.zst"
+            done
+
+            # Optional: test --ultra compression modes (levels 20 to 22)
+            for level in 20 21 22; do
+              zstd --ultra -$level -c "$file" > "compressed/$(basename "$file").zstd-ultra-$level.zst"
+            done
           done
 
       - name: Copy handpicked files
@@ -83,6 +99,10 @@ jobs:
         run: |
           zip -r bzip2-files.zip compressed/*.bz2
 
+      - name: Create zstd artifact zip
+        run: |
+          zip -r zstd-files.zip compressed/*.zst
+
       - name: Upload gzip artifact
         uses: actions/upload-artifact@v4
         with:
@@ -94,6 +114,12 @@ jobs:
         with:
           name: bzip2-files
           path: bzip2-files.zip
+
+      - name: Upload zstd artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zstd-files
+          path: zstd-files.zip
 
       - name: Set tag
         id: set_tag
