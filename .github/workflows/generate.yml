@@ -87,6 +87,10 @@ jobs:
             done
           done
 
+      - name: Generate zstd dict of `data/*.md`
+        run: |
+          zstd --train data/*.md -B128 -o dict.zstd
+
       - name: Copy handpicked files
         run: |
           cp handpicked/* compressed/
@@ -101,7 +105,7 @@ jobs:
 
       - name: Create zstd artifact zip
         run: |
-          zip -r zstd-files.zip compressed/*.zst
+          zip -r zstd-files.zip compressed/*.zst dict.zstd
 
       - name: Upload gzip artifact
         uses: actions/upload-artifact@v4
