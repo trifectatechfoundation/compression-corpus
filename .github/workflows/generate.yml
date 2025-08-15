@@ -57,6 +57,10 @@ jobs:
             sudo apt-get install -y bzip2
             bzip2 --version
 
+      - name: Generate zstd dict of `data/*.md`
+        run: |
+          zstd --train data/*.md -B128 -o compression-corpus.zstd
+
       - name: Compress files in data folder
         run: |
           mkdir -p compressed
@@ -81,15 +85,14 @@ jobs:
               zstd -$level --long=27 -c "$file" > "compressed/$(basename "$file").zstd-long27-$level.zst"
             done
 
+            # A couple of files with a custom dictionary.
+            zstd -10 -c "$file" -D compression-corpus.zstd > "compressed/$(basename "$file").zstd-custom-dict.zst"
+
             # Optional: test --ultra compression modes (levels 20 to 22)
             for level in 20 21 22; do
               zstd --ultra -$level -c "$file" > "compressed/$(basename "$file").zstd-ultra-$level.zst"
             done
           done
-
-      - name: Generate zstd dict of `data/*.md`
-        run: |
-          zstd --train data/*.md -B128 -o dict.zstd
 
       - name: Copy handpicked files
         run: |
@@ -105,7 +108,7 @@ jobs:
 
       - name: Create zstd artifact zip
         run: |
-          zip -r zstd-files.zip compressed/*.zst dict.zstd
+          zip -r zstd-files.zip compressed/*.zst compression-corpus.zstd
 
       - name: Upload gzip artifact
         uses: actions/upload-artifact@v4
