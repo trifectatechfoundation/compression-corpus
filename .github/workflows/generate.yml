@@ -46,6 +46,28 @@ jobs:
           echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
           $GITHUB_WORKSPACE/bin/zstd-0.7.4 --version
 
+      - name: Download and build zstd 0.6.1
+        run: |
+          curl -L -o zstd.tar.gz https://github.com/facebook/zstd/archive/refs/tags/v0.6.1.tar.gz
+          tar -xzf zstd.tar.gz
+          cd zstd-0.6.1
+          make -j"$(nproc)"
+          mkdir -p $GITHUB_WORKSPACE/bin
+          cp programs/zstd $GITHUB_WORKSPACE/bin/zstd-0.6.1
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+          $GITHUB_WORKSPACE/bin/zstd-0.6.1 --version
+
+      - name: Download and build zstd 0.5.1
+        run: |
+          curl -L -o zstd.tar.gz https://github.com/facebook/zstd/archive/refs/tags/v0.5.1.tar.gz
+          tar -xzf zstd.tar.gz
+          cd zstd-0.5.1
+          make -j"$(nproc)"
+          mkdir -p $GITHUB_WORKSPACE/bin
+          cp programs/zstd $GITHUB_WORKSPACE/bin/zstd-0.5.1
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+          $GITHUB_WORKSPACE/bin/zstd-0.5.1 --version
+
       - name: Download and build zlib-ng (because it exposes compression level 0)
         run: |
           curl -L -o zlib-ng.tar.gz https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.2.4.tar.gz
@@ -71,6 +93,9 @@ jobs:
       - name: Generate zstd dict of `data/*.md`
         run: |
           zstd --train data/*.md -B128 -o compression-corpus.zstd
+          zstd-0.7.4 --train data/*.md -B128 -o compression-corpus-0.7.4.zstd
+          zstd-0.6.1 --train data/*.md -B128 -o compression-corpus-0.6.1.zstd
+          zstd-0.5.1 --train data/*.md -B128 -o compression-corpus-0.5.1.zstd
 
       - name: Compress files in data folder
         run: |
@@ -94,12 +119,19 @@ jobs:
             for level in $(seq 1 19); do
               zstd -$level -c "$file" > "compressed/$(basename "$file").zstd-$level.zst"
               zstd -$level --long=27 -c "$file" > "compressed/$(basename "$file").zstd-long27-$level.zst"
+            done
 
+            for level in 1 5 10 19; do
               zstd-0.7.4 -$level -c "$file" > "compressed/$(basename "$file").zstd-0.7.4-$level.zst"
+              zstd-0.6.1 -$level -c "$file" > "compressed/$(basename "$file").zstd-0.6.1-$level.zst"
+              zstd-0.5.1 -$level -c "$file" > "compressed/$(basename "$file").zstd-0.5.1-$level.zst"
             done
 
             # A couple of files with a custom dictionary.
             zstd -10 -c "$file" -D compression-corpus.zstd > "compressed/$(basename "$file").zstd-custom-dict.zst"
+            zstd-0.7.4 -10 -c "$file" -D compression-corpus-0.7.4.zstd > "compressed/$(basename "$file").zstd-0.7.4-custom-dict.zst"
+            zstd-0.6.1 -10 -c "$file" -D compression-corpus-0.6.1.zstd > "compressed/$(basename "$file").zstd-0.6.1-custom-dict.zst"
+            zstd-0.6.1 -10 -c "$file" -D compression-corpus-0.6.1.zstd > "compressed/$(basename "$file").zstd-0.6.1-custom-dict.zst"
 
             # Optional: test --ultra compression modes (levels 20 to 22)
             for level in 20 21 22; do
